@@ -1,14 +1,34 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
 )
 
 // Declare a handler which writes a plain text response with information
 // about the application status, operating environment and version.
 func (app *application) healthcheckHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "status: available")
-	fmt.Fprintf(w, "environment: %s\n", app.config.env)
-	fmt.Fprintf(w, "version: %s\n", version)
+	// Create a map which holds the information that we want to send in the response.
+	data := map[string]string{
+		"status":      "available",
+		"environment": app.config.env,
+		"version":     version,
+	}
+	// Pass the map to the json.Marshal() function. This returns a []byte slice containing
+	// the encoded JSON.
+	js, err := json.Marshal(data)
+	if err != nil {
+		app.logger.Println(err)
+		http.Error(w, "The server encountered a problem and could not process your request", http.StatusInternalServerError)
+		return
+	}
+
+	// Append a new line to the JSON. To make it easier to view in terminal applications
+	js = append(js, '\n')
+
+	// Set the "Content-Type: application/json" header on the response.
+	w.Header().Set("Content-Type", "application/json")
+
+	// Write the JSON as the HTTP response body.
+	w.Write(js)
 }
